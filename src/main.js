@@ -1,6 +1,7 @@
 var COOKIE_PREFIX = '_simpleRedirect_'
 var TEST_NAME_PARAM = 'srtn'
 var BRANCH_NAME_PARAM = 'srbn'
+var FORCE_BRANCH_PARAM = 'srfb'
 var DEFAULT_TTL_SECS = 60 * 60 * 24 * 30
 
 var currentUrl = new URL(window.location.href)
@@ -19,16 +20,21 @@ function cookie(name, value, ttl, path, samesite, secure, domain) {
     }
     return decodeURIComponent((('; ' + document.cookie).split('; ' + name + '=')[1] || '').split(';')[0])
   } catch (e) {
-    console.warn('simple-redirect: cookies unsupported')
+    console.warn('cookies unsupported')
     return null
   }
 }
 
 function testApplies(test) {
   if (!test.name || !test.urlPattern || !test.redirectTo) {
-    console.warn('simple-redirect: invalid test:', test)
+    console.warn('invalid test:', test)
     return false
   }
+
+  if (currentUrl.searchParams.get(TEST_NAME_PARAM) === test.name) {
+    return false
+  }
+
   var re = new RegExp(test.urlPattern)
   if (window.location.href.match(re)) {
     return true
@@ -41,7 +47,7 @@ function checkUserBranch(test) {
   if (!res) {
     return null
   }
-  console.debug("Found user branch via cookie")
+  console.debug("Found branch via cookie")
   return JSON.parse(res)
 }
 
@@ -63,26 +69,39 @@ function mergeSearchParams(url1, url2) {
   return url2
 }
 
-function pickUserBranch(test) {
+function pickUserBranch(test, forcedBranch) {
   var finalUrl
   var redirect = false
   var weight = test.weight || 0.5
+  if (forcedBranch === "control") {
+    weight = 0;
+  } else if (forcedBranch === "test") {
+    weight = 1
+  } else if (forcedBranch) {
+    console.warn("Ignoring invalid forced branch:", forcedBranch)
+  }
 
   if (Math.random() < weight) {
-    redirect = new URL(test.redirectTo)
-    redirect.searchParams.set(TEST_NAME_PARAM, test.name);
-    redirect.searchParams.set(BRANCH_NAME_PARAM, "test");
-    if (currentUrl.search.length > 0) {
-      var tempUrl = mergeSearchParams(redirect, currentUrl)
-      redirect.search = tempUrl.search
+    var redirectUrl
+    if (!test.redirectTo.startsWith('http')) {
+      // Assume URL relative to origin
+      redirectUrl = new URL(test.redirectTo, currentUrl.origin)
+    } else {
+      redirectUrl = new URL(test.redirectTo)
     }
-    finalUrl = redirect.toString()
+    redirectUrl.searchParams.set(TEST_NAME_PARAM, test.name);
+    redirectUrl.searchParams.set(BRANCH_NAME_PARAM, "test");
+    if (currentUrl.search.length > 0) {
+      var tempUrl = mergeSearchParams(redirectUrl, currentUrl)
+      redirectUrl.search = tempUrl.search
+    }
+    finalUrl = redirectUrl.toString()
     redirect = true
   } else {
     currentUrl.searchParams.set(TEST_NAME_PARAM, test.name);
     currentUrl.searchParams.set(BRANCH_NAME_PARAM, "control");
     var newPath = currentUrl.pathname + '?' + currentUrl.searchParams.toString();
-    history.pushState(null, '', newPath);
+    history.replaceState(null, '', newPath);
     finalUrl = currentUrl.toString()
   }
 
@@ -91,7 +110,8 @@ function pickUserBranch(test) {
 
 function executeBranch(branch) {
   if (branch.redirect) {
-    window.location.href = branch.url;
+    // replace() does not impact history
+    window.location.replace(branch.url)
   }
 }
 
@@ -102,19 +122,22 @@ function init() {
       return
     }
 
-    var useCookies = typeof test.cookie === 'undefined' || test.cookie;
+    var forcedBranch = currentUrl.searchParams.get(FORCE_BRANCH_PARAM)
+    var useCookies = (typeof test.cookie === 'undefined' || test.cookie);
     var branch
-    if (useCookies) {
+
+    if (useCookies && !forcedBranch) {
       branch = checkUserBranch(test)
     }
+
     if (!branch) {
-      branch = pickUserBranch(test)
+      branch = pickUserBranch(test, forcedBranch)
     }
 
     if (useCookies) {
       saveUserBranch(test, branch)
     }
-    console.debug("Branch:", branch)
+    console.debug(branch)
     executeBranch(branch)
   })
 }
