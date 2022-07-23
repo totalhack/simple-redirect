@@ -1,5 +1,3 @@
-
-
 var COOKIE_PREFIX = '_simpleRedirect_'
 var TEST_NAME_PARAM = 'srtn'
 var BRANCH_NAME_PARAM = 'srbn'
