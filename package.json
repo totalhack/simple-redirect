@@ -1,6 +1,6 @@
 {
   "name": "simple-redirect",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publishConfig": {
     "access": "public"
   },
@@ -19,12 +19,6 @@
   ],
   "main": "./dist/simple-redirect.umd.js",
   "module": "./dist/simple-redirect.es.js",
-  "exports": {
-    ".": {
-      "import": "./dist/simple-redirect.es.js",
-      "require": "./dist/simple-redirect.umd.js"
-    }
-  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
