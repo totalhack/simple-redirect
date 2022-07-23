@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vite App</title>
+</head>
+
+<body>
+  <div id="app">
+    <h1>Home Header Text!</h1>
+  </div>
+  <script>
+    window.simpleRedirectTests = [
+      {
+        name: 'test1',
+        urlPattern: 'test',
+        redirectTo: 'https://www.google.com?test=2',
+        weight: 0.6,
+        // cookie: false,
+        ttl: 60 * 60 * 24 * 7
+      }
+    ]
+  </script>
+  <script type="module" src="/src/main.js"></script>
+  <!-- <script type="module" src="/dist/simple-redirect.iife.js"></script> -->
+</body>
+
+</html>

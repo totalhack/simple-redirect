@@ -1,0 +1,42 @@
+{
+  "name": "simple-redirect",
+  "version": "0.0.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totalhack/simple-redirect.git"
+  },
+  "keywords": [
+    "redirector",
+    "ab test"
+  ],
+  "author": "totalhack",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/simple-redirect.umd.js",
+  "module": "./dist/simple-redirect.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/simple-redirect.es.js",
+      "require": "./dist/simple-redirect.umd.js"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview",
+    "pub": "vite build && npm publish",
+    "patch": "npm version patch --force --commit-hooks false",
+    "patchpub": "vite build && npm version patch --force --commit-hooks false && npm publish"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "vite": "2.9.4",
+    "eslint": "^7.32.0",
+    "eslint-plugin-compat": "^3.13.0"
+  }
+}
