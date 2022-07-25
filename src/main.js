@@ -101,8 +101,6 @@ function pickUserBranch(test, forcedBranch) {
   } else {
     currentUrl.searchParams.set(TEST_NAME_PARAM, test.name);
     currentUrl.searchParams.set(BRANCH_NAME_PARAM, "control");
-    var newPath = currentUrl.pathname + '?' + currentUrl.searchParams.toString();
-    history.replaceState(null, '', newPath);
     finalUrl = currentUrl.toString()
   }
 
@@ -113,6 +111,8 @@ function executeBranch(branch) {
   if (branch.redirect) {
     // replace() does not impact history
     window.location.replace(branch.url)
+  } else if (window.location.href !== branch.url) {
+    window.history.replaceState(null, '', branch.url);
   }
 }
 
