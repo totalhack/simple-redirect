@@ -115,8 +115,24 @@ function executeBranch(branch) {
   }
 }
 
+function invalidUseAgent() {
+  var ua = navigator.userAgent || ''
+  var patterns = ['AdsBot-Google', 'Googlebot', 'bingbot']
+  for (const pattern of patterns) {
+    if (ua.indexOf(pattern) > -1) {
+      return true
+    }
+  }
+  return false
+}
+
 function init() {
   var tests = window.simpleRedirectTests || [];
+
+  if (invalidUseAgent()) {
+    return
+  }
+
   tests.forEach(function (test) {
     if (!testApplies(test)) {
       return
