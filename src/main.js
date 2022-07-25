@@ -8,6 +8,7 @@ var currentUrl = new URL(window.location.href)
 
 // Credit: https://github.com/DavidWells/analytics/blob/master/packages/analytics-util-storage-cookie
 function cookie(name, value, ttl, path, samesite, secure, domain) {
+  name = name.replace(/\s/g, "_") // No whitespace in cookie name
   var isSet = arguments.length > 1
   try {
     if (isSet) {
