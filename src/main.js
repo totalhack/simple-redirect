@@ -49,7 +49,20 @@ function checkUserBranch(test) {
     return null
   }
   console.debug("Found branch via cookie")
-  return JSON.parse(res)
+  var branch = JSON.parse(res)
+
+  // Take branch dest URL, keep test params and otherwise overlay current params
+  var url = new URL(branch.url)
+  var newUrl = new URL(url.origin + url.pathname + (branch.testParams || ''))
+  newUrl.searchParams.set(TEST_NAME_PARAM, url.searchParams.get(TEST_NAME_PARAM))
+  newUrl.searchParams.set(BRANCH_NAME_PARAM, url.searchParams.get(BRANCH_NAME_PARAM))
+  if (url.searchParams.get(FORCE_BRANCH_PARAM)) {
+    newUrl.searchParams.set(FORCE_BRANCH_PARAM, url.searchParams.get(FORCE_BRANCH_PARAM))
+  }
+  var tempUrl = mergeSearchParams(newUrl, currentUrl)
+  newUrl.search = tempUrl.search
+  branch.url = newUrl.toString()
+  return branch
 }
 
 function saveUserBranch(test, branch) {
@@ -73,7 +86,9 @@ function mergeSearchParams(url1, url2) {
 function pickUserBranch(test, forcedBranch) {
   var finalUrl
   var redirect = false
+  var testParams = null;
   var weight = test.weight || 0.5
+
   if (forcedBranch === "control") {
     weight = 0;
   } else if (forcedBranch === "test") {
@@ -90,6 +105,13 @@ function pickUserBranch(test, forcedBranch) {
     } else {
       redirectUrl = new URL(test.redirectTo)
     }
+
+    // If redirectTo has params, we store them so they will be reused
+    // each time we hit this branch
+    if (redirectUrl.search.length > 0) {
+      testParams = redirectUrl.search
+    }
+
     redirectUrl.searchParams.set(TEST_NAME_PARAM, test.name);
     redirectUrl.searchParams.set(BRANCH_NAME_PARAM, "test");
     if (currentUrl.search.length > 0) {
@@ -104,13 +126,12 @@ function pickUserBranch(test, forcedBranch) {
     finalUrl = currentUrl.toString()
   }
 
-  return { redirect: redirect, url: finalUrl }
+  return { redirect: redirect, url: finalUrl, testParams: testParams }
 }
 
 function executeBranch(branch) {
   if (branch.redirect) {
-    // replace() does not impact history
-    window.location.replace(branch.url)
+    window.location.replace(branch.url) // replace() does not impact history
   } else if (window.location.href !== branch.url) {
     window.history.replaceState(null, '', branch.url);
   }
