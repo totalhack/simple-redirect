@@ -2,6 +2,8 @@ var COOKIE_PREFIX = '_simpleRedirect_'
 var TEST_NAME_PARAM = 'srtn'
 var BRANCH_NAME_PARAM = 'srbn'
 var FORCE_BRANCH_PARAM = 'srfb'
+var CONTROL_BRANCH_NAME = 'control'
+var TEST_BRANCH_NAME = 'test'
 var DEFAULT_TTL_SECS = 60 * 60 * 24 * 30
 
 var currentUrl = new URL(window.location.href)
@@ -48,21 +50,9 @@ function checkUserBranch(test) {
   if (!res) {
     return null
   }
+  var res = JSON.parse(res)
   console.debug("Found branch via cookie")
-  var branch = JSON.parse(res)
-
-  // Take branch dest URL, keep test params and otherwise overlay current params
-  var url = new URL(branch.url)
-  var newUrl = new URL(url.origin + url.pathname + (branch.testParams || ''))
-  newUrl.searchParams.set(TEST_NAME_PARAM, url.searchParams.get(TEST_NAME_PARAM))
-  newUrl.searchParams.set(BRANCH_NAME_PARAM, url.searchParams.get(BRANCH_NAME_PARAM))
-  if (url.searchParams.get(FORCE_BRANCH_PARAM)) {
-    newUrl.searchParams.set(FORCE_BRANCH_PARAM, url.searchParams.get(FORCE_BRANCH_PARAM))
-  }
-  var tempUrl = mergeSearchParams(newUrl, currentUrl)
-  newUrl.search = tempUrl.search
-  branch.url = newUrl.toString()
-  return branch
+  return res.branch
 }
 
 function saveUserBranch(test, branch) {
@@ -72,7 +62,8 @@ function saveUserBranch(test, branch) {
   }
   var path = "/"
   var samesite = 'Strict'
-  return cookie(COOKIE_PREFIX + test.name, JSON.stringify(branch), ttl, path, samesite)
+  var res = { test, branch }
+  return cookie(COOKIE_PREFIX + test.name, JSON.stringify(res), ttl, path, samesite)
 }
 
 function mergeSearchParams(url1, url2) {
@@ -84,56 +75,47 @@ function mergeSearchParams(url1, url2) {
 }
 
 function pickUserBranch(test, forcedBranch) {
-  var finalUrl
-  var redirect = false
-  var testParams = null;
+  var branch = CONTROL_BRANCH_NAME
   var weight = test.weight || 0.5
 
-  if (forcedBranch === "control") {
-    weight = 0;
-  } else if (forcedBranch === "test") {
-    weight = 1
+  if (forcedBranch === CONTROL_BRANCH_NAME) {
+    return CONTROL_BRANCH_NAME
+  } else if (forcedBranch === TEST_BRANCH_NAME) {
+    return TEST_BRANCH_NAME
   } else if (forcedBranch) {
-    console.warn("Ignoring invalid forced branch:", forcedBranch)
+    console.warn('Ignoring invalid forced branch:', forcedBranch)
   }
 
   if (Math.random() < weight) {
+    branch = TEST_BRANCH_NAME
+  }
+  return branch
+}
+
+function executeBranch(test, branch) {
+  if (branch === TEST_BRANCH_NAME) {
     var redirectUrl
     if (!test.redirectTo.startsWith('http')) {
-      // Assume URL relative to origin
-      redirectUrl = new URL(test.redirectTo, currentUrl.origin)
+      redirectUrl = new URL(test.redirectTo, currentUrl.origin) // relative url
     } else {
       redirectUrl = new URL(test.redirectTo)
     }
 
-    // If redirectTo has params, we store them so they will be reused
-    // each time we hit this branch
-    if (redirectUrl.search.length > 0) {
-      testParams = redirectUrl.search
-    }
-
     redirectUrl.searchParams.set(TEST_NAME_PARAM, test.name);
-    redirectUrl.searchParams.set(BRANCH_NAME_PARAM, "test");
+    redirectUrl.searchParams.set(BRANCH_NAME_PARAM, TEST_BRANCH_NAME);
     if (currentUrl.search.length > 0) {
       var tempUrl = mergeSearchParams(redirectUrl, currentUrl)
       redirectUrl.search = tempUrl.search
     }
-    finalUrl = redirectUrl.toString()
-    redirect = true
-  } else {
+
+    window.location.replace(redirectUrl.toString())
+  } else if (branch === CONTROL_BRANCH_NAME) {
     currentUrl.searchParams.set(TEST_NAME_PARAM, test.name);
-    currentUrl.searchParams.set(BRANCH_NAME_PARAM, "control");
-    finalUrl = currentUrl.toString()
-  }
+    currentUrl.searchParams.set(BRANCH_NAME_PARAM, CONTROL_BRANCH_NAME);
 
-  return { redirect: redirect, url: finalUrl, testParams: testParams }
-}
-
-function executeBranch(branch) {
-  if (branch.redirect) {
-    window.location.replace(branch.url) // replace() does not impact history
-  } else if (window.location.href !== branch.url) {
-    window.history.replaceState(null, '', branch.url);
+    window.history.replaceState(null, '', currentUrl.toString());
+  } else {
+    throw ("Invalid branch: " + branch)
   }
 }
 
@@ -175,8 +157,8 @@ function init() {
     if (useCookies) {
       saveUserBranch(test, branch)
     }
-    console.debug(branch)
-    executeBranch(branch)
+    console.debug('Branch:', branch, 'Test:', test)
+    executeBranch(test, branch)
   })
 }
 
