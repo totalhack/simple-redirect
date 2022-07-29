@@ -5,8 +5,7 @@ var FORCE_BRANCH_PARAM = 'srfb'
 var CONTROL_BRANCH_NAME = 'control'
 var TEST_BRANCH_NAME = 'test'
 var DEFAULT_TTL_SECS = 60 * 60 * 24 * 30
-
-var currentUrl = new URL(window.location.href)
+var currentUrl
 
 // Credit: https://github.com/DavidWells/analytics/blob/master/packages/analytics-util-storage-cookie
 function cookie(name, value, ttl, path, samesite, secure, domain) {
@@ -162,6 +161,12 @@ function init() {
   })
 }
 
-init()
+
+if (!(window.URL && window.URLSearchParams)) {
+  console.warn('unsupported browser')
+} else {
+  currentUrl = new URL(window.location.href)
+  init()
+}
 
 export default init
