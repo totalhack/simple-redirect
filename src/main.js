@@ -100,8 +100,8 @@ function executeBranch(test, branch) {
       redirectUrl = new URL(test.redirectTo)
     }
 
-    redirectUrl.searchParams.set(TEST_NAME_PARAM, test.name);
-    redirectUrl.searchParams.set(BRANCH_NAME_PARAM, TEST_BRANCH_NAME);
+    redirectUrl.searchParams.set(TEST_NAME_PARAM, test.name)
+    redirectUrl.searchParams.set(BRANCH_NAME_PARAM, TEST_BRANCH_NAME)
     if (currentUrl.search.length > 0) {
       var tempUrl = mergeSearchParams(redirectUrl, currentUrl)
       redirectUrl.search = tempUrl.search
@@ -109,30 +109,27 @@ function executeBranch(test, branch) {
 
     window.location.replace(redirectUrl.toString())
   } else if (branch === CONTROL_BRANCH_NAME) {
-    currentUrl.searchParams.set(TEST_NAME_PARAM, test.name);
-    currentUrl.searchParams.set(BRANCH_NAME_PARAM, CONTROL_BRANCH_NAME);
+    currentUrl.searchParams.set(TEST_NAME_PARAM, test.name)
+    currentUrl.searchParams.set(BRANCH_NAME_PARAM, CONTROL_BRANCH_NAME)
 
-    window.history.replaceState(null, '', currentUrl.toString());
+    window.history.replaceState(null, '', currentUrl.toString())
   } else {
     throw ("Invalid branch: " + branch)
   }
 }
 
-function invalidUseAgent() {
+function isBot() {
   var ua = navigator.userAgent || ''
-  var patterns = ['AdsBot-Google', 'Googlebot', 'bingbot']
-  for (const pattern of patterns) {
-    if (ua.indexOf(pattern) > -1) {
-      return true
-    }
-  }
-  return false
+  var bots = new RegExp([
+    /bot/, /spider/, /crawl/, /mediapartners/, /Google-Read-Aloud/, /semrush/
+  ].map((r) => r.source).join("|"), "i")
+  return bots.test(ua)
 }
 
 function init() {
-  var tests = window.simpleRedirectTests || [];
+  var tests = window.simpleRedirectTests || []
 
-  if (invalidUseAgent()) {
+  if (isBot()) {
     return
   }
 
@@ -142,7 +139,7 @@ function init() {
     }
 
     var forcedBranch = currentUrl.searchParams.get(FORCE_BRANCH_PARAM)
-    var useCookies = (typeof test.cookie === 'undefined' || test.cookie);
+    var useCookies = (typeof test.cookie === 'undefined' || test.cookie)
     var branch
 
     if (useCookies && !forcedBranch) {
