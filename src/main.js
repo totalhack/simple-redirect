@@ -28,20 +28,28 @@ function cookie(name, value, ttl, path, samesite, secure, domain) {
 }
 
 function testApplies(test) {
-  if (!test.name || !test.urlPattern || !test.redirectTo) {
+  if (!test.name || !test.redirectTo || !(test.urlPattern || test.activeCallback)) {
     console.warn('invalid test:', test)
     return false
   }
 
   if (currentUrl.searchParams.get(TEST_NAME_PARAM) === test.name) {
+    // Already in this test
     return false
   }
 
-  var re = new RegExp(test.urlPattern)
-  if (window.location.href.match(re)) {
-    return true
+  if (test.urlPattern) {
+    var re = new RegExp(test.urlPattern)
+    if (!window.location.href.match(re)) {
+      return false
+    }
   }
-  return false
+
+  if (test.activeCallback) {
+    return test.activeCallback(test)
+  }
+
+  return true
 }
 
 function checkUserBranch(test) {
